@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REST API Best Practices — دليل المطور</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Exo+2:wght@300;400;600;800;900&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #04080f;
+  --bg2:     #070d18;
+  --bg3:     #0a1220;
+  --bg4:     #0d1828;
+  --card:    #081020;
+  --card2:   #0c1628;
+
+  --blue:    #0af;
+  --blue2:   #0088cc;
+  --blue3:   rgba(0,170,255,0.06);
+  --blue4:   rgba(0,170,255,0.12);
+  --cyan:    #00f0ff;
+  --cyan2:   rgba(0,240,255,0.07);
+  --electric:#3d9eff;
+
+  --green:   #00e5a0;
+  --green2:  rgba(0,229,160,0.08);
+  --red:     #ff3b5c;
+  --red2:    rgba(255,59,92,0.08);
+  --amber:   #ffb700;
+  --amber2:  rgba(255,183,0,0.08);
+  --purple:  #8b5cf6;
+
+  --border:  #0e2040;
+  --border2: #1a3558;
+  --border3: #1e3f6a;
+
+  --text:    #b8d0ea;
+  --text2:   #6890b0;
+  --text3:   #2a4a6a;
+
+  --mono:    'JetBrains Mono', monospace;
+  --display: 'Exo 2', sans-serif;
+  --body:    'Cairo', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── GRID BACKGROUND ── */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,170,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,170,255,0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events:none; z-index:0;
+}
+
+/* subtle radial glow top-right */
+body::after {
+  content:'';
+  position:fixed;
+  top:-30vh; right:-20vw;
+  width:80vw; height:80vh;
+  background: radial-gradient(ellipse at center, rgba(0,136,204,0.07) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position:sticky; top:0; z-index:100;
+  background: rgba(4,8,15,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border2);
+  height:54px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2rem;
+}
+
+.topbar::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0;
+  height:1px;
+  background: linear-gradient(90deg, transparent, var(--blue), var(--cyan), transparent);
+  opacity:0.4;
+}
+
+.tl { display:flex; align-items:center; gap:0.8rem; }
+
+.tl-badge {
+  font-family: var(--mono);
+  font-size:0.6rem; font-weight:700;
+  color: var(--bg);
+  background: var(--blue);
+  padding:0.25rem 0.6rem;
+  letter-spacing:0.12em; text-transform:uppercase;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+
+.tl-label {
+  font-family: var(--mono);
+  font-size:0.68rem; font-weight:600;
+  color: var(--blue);
+  letter-spacing:0.15em; text-transform:uppercase;
+}
+
+.t-nav { display:flex; gap:0.2rem; list-style:none; }
+.t-nav a {
+  font-family: var(--mono); font-size:0.62rem; color:var(--text3);
+  text-decoration:none; letter-spacing:0.08em; text-transform:uppercase;
+  padding:0.3rem 0.7rem; border-radius:3px;
+  transition: all 0.15s;
+}
+.t-nav a:hover { color:var(--blue); background:var(--blue3); }
+
+/* ── HERO ── */
+.hero {
+  position:relative; z-index:1;
+  max-width:1280px; margin:0 auto;
+  padding: 5.5rem 2rem 4rem;
+  display:grid; grid-template-columns:1fr 420px; gap:5rem; align-items:center;
+}
+@media(max-width:960px){ .hero { grid-template-columns:1fr; gap:3rem; } }
+
+.hero-eyebrow {
+  display:flex; align-items:center; gap:0.8rem;
+  margin-bottom:1.6rem;
+}
+
+.hero-eyebrow-line {
+  width:32px; height:1px;
+  background: linear-gradient(90deg, transparent, var(--blue));
+}
+
+.hero-eyebrow-text {
+  font-family: var(--mono); font-size:0.62rem; font-weight:600;
+  letter-spacing:0.25em; text-transform:uppercase;
+  color: var(--blue);
+}
+
+.hero-h1 {
+  font-family: var(--display);
+  font-size: clamp(2.8rem, 5.5vw, 5rem);
+  font-weight:900; line-height:0.98;
+  letter-spacing:-0.01em; text-transform:uppercase;
+  margin-bottom:1.6rem;
+}
+
+.hero-h1 .line2 {
+  display:block;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-h1 .line3 {
+  display:block;
+  color: var(--text);
+  font-weight:300;
+  letter-spacing:0.08em;
+  font-size:0.55em;
+  margin-top:0.2em;
+}
+
+.hero-p {
+  color:var(--text2); font-size:0.92rem;
+  line-height:1.85; margin-bottom:2.5rem; max-width:48ch;
+}
+
+.hero-stats { display:flex; gap:0; }
+
+.h-stat {
+  padding:1.2rem 1.8rem;
+  border:1px solid var(--border2);
+  border-left:none; position:relative;
+}
+.h-stat:first-child { border-right:none; border-left:1px solid var(--border2); }
+
+.h-stat::before {
+  content:'';
+  position:absolute; top:0; right:0;
+  width:100%; height:2px;
+  background: linear-gradient(90deg, var(--blue), transparent);
+  opacity:0;
+  transition: opacity 0.3s;
+}
+.h-stat:hover::before { opacity:1; }
+
+.h-stat-n {
+  font-family: var(--mono);
+  font-size:1.8rem; font-weight:700;
+  color: var(--blue); line-height:1; display:block;
+  margin-bottom:0.3rem;
+}
+.h-stat-l {
+  font-family: var(--mono); font-size:0.58rem;
+  color:var(--text3); letter-spacing:0.12em; text-transform:uppercase;
+}
+
+/* Request visualizer */
+.req-viz {
+  background: var(--card);
+  border:1px solid var(--border2);
+  border-radius:8px; overflow:hidden;
+  font-family: var(--mono); font-size:0.7rem;
+  position:relative;
+  direction: ltr;
+}
+
+.req-viz::before {
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(135deg, rgba(0,170,255,0.03) 0%, transparent 60%);
+  pointer-events:none;
+}
+
+.rv-header {
+  background: var(--bg3);
+  border-bottom:1px solid var(--border);
+  padding:0.7rem 1rem;
+  display:flex; align-items:center; gap:0.8rem;
+}
+
+.rv-method {
+  font-size:0.6rem; font-weight:700;
+  padding:0.2rem 0.6rem; letter-spacing:0.1em;
+  clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
+}
+.m-get    { background:rgba(0,229,160,0.15); color:var(--green); }
+.m-post   { background:rgba(0,170,255,0.15); color:var(--blue); }
+.m-put    { background:rgba(255,183,0,0.15); color:var(--amber); }
+.m-patch  { background:rgba(139,92,246,0.15); color:var(--purple); }
+.m-delete { background:rgba(255,59,92,0.15); color:var(--red); }
+
+.rv-url { color:var(--text2); font-size:0.68rem; flex:1; }
+.rv-status-ok   { margin-right:auto; font-size:0.62rem; font-weight:700; color:var(--green); }
+.rv-status-err  { margin-right:auto; font-size:0.62rem; font-weight:700; color:var(--red); }
+
+.rv-body { padding:1rem; line-height:1.9; }
+.rv-sep { height:1px; background:var(--border); margin:0.6rem 0; }
+.rv-key   { color:var(--blue); }
+.rv-val   { color:var(--green); }
+.rv-num   { color:var(--amber); }
+.rv-bool  { color:var(--purple); }
+.rv-null  { color:var(--text3); }
+.rv-dim   { color:var(--text3); }
+.rv-bad   { color:var(--red); }
+.rv-good  { color:var(--green); }
+.rv-warn  { color:var(--amber); }
+
+/* ── METRICS STRIP ── */
+.metrics-strip {
+  position:relative; z-index:1;
+  max-width:1280px; margin:0 auto;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  gap:1px; background:var(--border);
+  border:1px solid var(--border);
+  border-radius:6px; overflow:hidden;
+}
+@media(max-width:640px){ .metrics-strip { grid-template-columns:repeat(2,1fr); } }
+
+.ms-cell {
+  background:var(--card);
+  padding:1.4rem 1rem;
+  text-align:center;
+  position:relative; overflow:hidden;
+  transition: background 0.2s;
+}
+.ms-cell:hover { background:var(--card2); }
+.ms-cell::after {
+  content:''; position:absolute; bottom:0; left:20%; right:20%;
+  height:1px; background:var(--blue); opacity:0;
+  transition:opacity 0.2s;
+}
+.ms-cell:hover::after { opacity:0.4; }
+
+.ms-n {
+  font-family:var(--mono); font-size:1.9rem; font-weight:700;
+  color:var(--blue); display:block; line-height:1; margin-bottom:0.4rem;
+}
+.ms-l { font-family:var(--mono); font-size:0.58rem; color:var(--text3); letter-spacing:0.12em; text-transform:uppercase; }
+
+/* ── FILTERS ── */
+.filters {
+  position:relative; z-index:1;
+  max-width:1280px; margin:0 auto;
+  padding:1.2rem 2rem;
+  display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;
+}
+
+.filters-label {
+  font-family:var(--mono); font-size:0.58rem;
+  color:var(--text3); letter-spacing:0.15em; text-transform:uppercase;
+  margin-left:0.5rem;
+}
+
+.fb {
+  background:transparent;
+  border:1px solid var(--border2); color:var(--text3);
+  font-family:var(--mono); font-size:0.62rem;
+  letter-spacing:0.08em; text-transform:uppercase;
+  padding:0.3rem 0.8rem; cursor:pointer;
+  border-radius:3px; transition:all 0.15s;
+}
+.fb:hover { border-color:var(--blue); color:var(--blue); background:var(--blue3); }
+.fb.active { background:var(--blue4); border-color:var(--blue); color:var(--blue); }
+
+/* ── SECTION HEADER ── */
+.sec-head {
+  position:relative; z-index:1;
+  max-width:1280px; margin:0 auto;
+  padding:3.5rem 2rem 0;
+  display:flex; align-items:center; gap:1.2rem;
+}
+.sec-num {
+  font-family:var(--mono); font-size:0.58rem; font-weight:700;
+  color:var(--bg); background:var(--blue);
+  padding:0.25rem 0.6rem; letter-spacing:0.1em;
+  clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
+}
+.sec-title {
+  font-family:var(--display);
+  font-size:1.6rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:0.06em;
+}
+.sec-sub {
+  font-family:var(--mono); font-size:0.6rem; color:var(--text3);
+  letter-spacing:0.12em; text-transform:uppercase;
+}
+.sec-line { flex:1; height:1px; background:linear-gradient(90deg, var(--border2), transparent); }
+
+/* ── MAIN ── */
+.main { position:relative; z-index:1; max-width:1280px; margin:0 auto; padding:1.5rem 2rem 6rem; }
+.g2 { display:grid; grid-template-columns:repeat(auto-fill,minmax(570px,1fr)); gap:1px; }
+.g3 { display:grid; grid-template-columns:repeat(auto-fill,minmax(350px,1fr)); gap:1px; }
+@media(max-width:660px){ .g2,.g3 { grid-template-columns:1fr; } }
+
+/* gap-wrap for border */
+.g2, .g3 { background:var(--border); border:1px solid var(--border); border-radius:6px; overflow:hidden; margin-top:1.5rem; }
+
+/* ── CARD ── */
+.pcard {
+  background: var(--card);
+  overflow:hidden;
+  transition: background 0.2s;
+  position:relative;
+}
+.pcard:hover { background: var(--card2); }
+
+.pc-accent {
+  height:2px;
+  background:linear-gradient(90deg, var(--blue), transparent);
+}
+.pc-accent.green  { background:linear-gradient(90deg, var(--green), transparent); }
+.pc-accent.red    { background:linear-gradient(90deg, var(--red), transparent); }
+.pc-accent.amber  { background:linear-gradient(90deg, var(--amber), transparent); }
+.pc-accent.purple { background:linear-gradient(90deg, var(--purple), transparent); }
+.pc-accent.cyan   { background:linear-gradient(90deg, var(--cyan), transparent); }
+
+.pc-head {
+  padding:1rem 1.2rem 0.8rem;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-start; gap:0.7rem;
+}
+.pc-idx {
+  font-family:var(--mono); font-size:0.55rem; font-weight:600;
+  color:var(--text3); background:var(--bg3);
+  border:1px solid var(--border2); padding:0.2rem 0.45rem;
+  flex-shrink:0; margin-top:3px; letter-spacing:0.05em;
+}
+.pc-title { font-size:0.92rem; font-weight:700; flex:1; line-height:1.35; color:var(--text); }
+.pc-tag {
+  font-family:var(--mono); font-size:0.55rem; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase;
+  padding:0.2rem 0.5rem; border-radius:2px; flex-shrink:0; margin-top:3px;
+}
+.t-naming  { background:rgba(255,183,0,0.1);   color:var(--amber); }
+.t-status  { background:rgba(0,170,255,0.1);   color:var(--blue); }
+.t-auth    { background:rgba(139,92,246,0.1);  color:var(--purple); }
+.t-error   { background:rgba(255,59,92,0.1);   color:var(--red); }
+.t-design  { background:rgba(0,229,160,0.1);   color:var(--green); }
+.t-version { background:rgba(0,240,255,0.1);   color:var(--cyan); }
+.t-perf    { background:rgba(0,229,160,0.1);   color:var(--green); }
+.t-sec     { background:rgba(255,59,92,0.1);   color:var(--red); }
+
+.pc-body { padding:1.1rem 1.2rem; }
+.pc-body p { font-size:0.81rem; color:var(--text2); line-height:1.8; margin-bottom:0.85rem; }
+
+/* Code block */
+.cb {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius:4px; padding:0.85rem 1rem;
+  font-family:var(--mono); font-size:0.67rem; line-height:1.8;
+  white-space:pre-wrap; word-break:break-word;
+  margin-bottom:0.85rem; position:relative;
+  overflow:hidden;
+  direction: ltr;
+}
+.cb::before {
+  content:''; position:absolute; top:0; right:0;
+  width:2px; height:100%;
+  background:var(--blue); opacity:0.2;
+}
+.cb-bad  { border-color:rgba(255,59,92,0.25); }
+.cb-bad::before  { background:var(--red); opacity:0.4; }
+.cb-good { border-color:rgba(0,229,160,0.25); }
+.cb-good::before { background:var(--green); opacity:0.4; }
+
+.cb-lbl {
+  display:inline-block;
+  font-family:var(--mono); font-size:0.55rem; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase;
+  padding:0.15rem 0.5rem; border-radius:2px;
+  margin-bottom:0.5rem;
+}
+.lbl-good { background:rgba(0,229,160,0.1); color:var(--green); }
+.lbl-bad  { background:rgba(255,59,92,0.1);  color:var(--red); }
+.lbl-info { background:rgba(0,170,255,0.1);  color:var(--blue); }
+
+/* method pills inline */
+.method {
+  display:inline-block; font-family:var(--mono); font-size:0.62rem; font-weight:700;
+  padding:0.1rem 0.45rem; border-radius:3px; letter-spacing:0.06em;
+}
+.GET    { background:rgba(0,229,160,0.12); color:var(--green); }
+.POST   { background:rgba(0,170,255,0.12); color:var(--blue); }
+.PUT    { background:rgba(255,183,0,0.12); color:var(--amber); }
+.PATCH  { background:rgba(139,92,246,0.12); color:var(--purple); }
+.DELETE { background:rgba(255,59,92,0.12); color:var(--red); }
+
+/* Compare */
+.cmp { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.85rem; }
+@media(max-width:480px){ .cmp { grid-template-columns:1fr; } }
+
+/* Note */
+.note {
+  background:var(--bg3); border-right:2px solid var(--border2);
+  padding:0.6rem 0.9rem; font-size:0.74rem; color:var(--text2);
+  line-height:1.7; display:flex; gap:0.5rem; margin-bottom:0.5rem;
+  border-radius:0 4px 4px 0;
+}
+.note.g { border-right-color:var(--green); }
+.note.r { border-right-color:var(--red);   }
+.note.a { border-right-color:var(--amber); }
+.note.b { border-right-color:var(--blue);  }
+.note.c { border-right-color:var(--cyan);  }
+
+/* Rule list */
+.rl { list-style:none; display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.85rem; }
+.rl li { font-size:0.8rem; color:var(--text2); line-height:1.65; display:flex; gap:0.6rem; align-items:flex-start; }
+.rl li::before { content:'//'; font-family:var(--mono); color:var(--blue); flex-shrink:0; font-size:0.62rem; margin-top:2px; opacity:0.6; }
+
+/* Token colors for code */
+.kw  { color:#c792ea; font-weight:700; }
+.fn  { color:#82aaff; }
+.str { color:#c3e88d; }
+.num { color:#f78c6c; }
+.cm  { color:#3a5a7a; font-style:italic; }
+.op  { color:#89ddff; }
+.var { color:#ffcb6b; }
+.cls { color:#80cbc4; }
+.tag { color:#82aaff; }
+.val { color:#c3e88d; }
+.url { color:#89ddff; }
+
+/* Status table */
+.st-table { width:100%; border-collapse:collapse; font-size:0.79rem; direction: ltr;}
+.st-table th {
+  background:var(--bg3); font-family:var(--mono); font-size:0.6rem; color:var(--text3);
+  letter-spacing:0.12em; text-transform:uppercase; padding:0.75rem 1rem;
+  text-align:start; border-bottom:1px solid var(--border2);
+}
+.st-table td { padding:0.65rem 1rem; border-bottom:1px solid var(--border); vertical-align:middle; line-height:1.6; }
+.st-table tr:last-child td { border-bottom:none; }
+.st-table tr:hover td { background:rgba(0,170,255,0.02); }
+.s2xx { font-family:var(--mono); font-size:0.79rem; font-weight:700; color:var(--green); }
+.s3xx { font-family:var(--mono); font-size:0.79rem; font-weight:700; color:var(--cyan); }
+.s4xx { font-family:var(--mono); font-size:0.79rem; font-weight:700; color:var(--amber); }
+.s5xx { font-family:var(--mono); font-size:0.79rem; font-weight:700; color:var(--red); }
+
+td:nth-child(3){
+  text-align: end;
+  direction: rtl;
+}
+
+/* Interview */
+.q-card {
+  background:var(--card); overflow:hidden; cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition: background 0.15s;
+}
+.q-card:last-child { border-bottom:none; }
+.q-card:hover { background:var(--card2); }
+.q-card.open { background:var(--card2); }
+.q-card.open .q-head { border-bottom:1px solid var(--border2); }
+
+.q-head { padding:0.95rem 1.2rem; display:flex; align-items:flex-start; gap:0.7rem; }
+.q-n {
+  font-family:var(--mono); font-size:0.6rem; font-weight:700;
+  color:var(--blue); background:var(--blue3);
+  border:1px solid rgba(0,170,255,0.2);
+  padding:0.2rem 0.5rem; flex-shrink:0; margin-top:2px;
+}
+.q-t   { font-size:0.86rem; font-weight:700; flex:1; line-height:1.4; }
+.q-arr { font-family:var(--mono); font-size:0.65rem; color:var(--text3); flex-shrink:0; transition:transform 0.25s, color 0.2s; margin-top:2px; }
+.q-card.open .q-arr { transform:rotate(90deg); color:var(--blue); }
+.q-ans { max-height:0; overflow:hidden; transition:max-height 0.4s ease; }
+.q-card.open .q-ans { max-height:700px; }
+.q-ans-inner { padding:1rem 1.2rem 1.2rem; }
+.q-ans-inner p { font-size:0.8rem; color:var(--text2); line-height:1.85; margin-bottom:0.7rem; }
+
+/* Q wrapper — single bordered block */
+.q-wrap { background:var(--border); border-radius:6px; overflow:hidden; margin-top:1.5rem; }
+
+/* Checklist */
+.checklist {
+  background:var(--border); border-radius:6px;
+  overflow:hidden; margin:2.5rem 0;
+}
+.cl-head {
+  background:var(--card2); padding:1.2rem 1.5rem;
+  display:flex; align-items:center; gap:0.8rem;
+  border-bottom:1px solid var(--border2);
+}
+.cl-head-label {
+  font-family:var(--mono); font-size:0.6rem; font-weight:700;
+  color:var(--bg); background:var(--blue);
+  padding:0.25rem 0.6rem; letter-spacing:0.1em;
+  clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
+}
+.cl-head-title {
+  font-family:var(--display); font-size:1.1rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:0.06em;
+}
+.cl-head-title em { color:var(--blue); font-style:normal; }
+.cl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:1px; background:var(--border); padding:1px; }
+.cl-item {
+  display:flex; align-items:flex-start; gap:0.7rem;
+  padding:0.75rem 1rem; font-size:0.79rem; color:var(--text2);
+  cursor:pointer; background:var(--card);
+  transition:background 0.15s; user-select:none;
+}
+.cl-item:hover { background:var(--card2); }
+.cl-item.on { color:var(--text); background:var(--card2); }
+.cl-item.on .cl-box { background:var(--blue); border-color:var(--blue); color:var(--bg); }
+.cl-box {
+  width:15px; height:15px;
+  border:1px solid var(--border3);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:0.58rem; font-weight:700;
+  flex-shrink:0; margin-top:2px; border-radius:2px;
+  transition:all 0.15s;
+}
+
+/* Footer */
+footer {
+  position:relative; z-index:1;
+  background:var(--bg2); border-top:1px solid var(--border2);
+  padding:2rem 2rem;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+}
+
+
+footer {
+  padding: 2.5rem 2rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  
+}
+@media (max-width:900px) {
+  footer{
+    flex-direction: column !important;
+    text-align: center;
+    align-items: center !important;
+  }
+}
+
+
+.footer-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.footer-author {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: right;
+}
+
+[dir="rtl"] .footer-author { text-align: left; }
+
+.footer-author-name {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.footer-social {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .footer-social { justify-content: flex-start; }
+
+.footer-social a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.footer-social a:hover { color: var(--accent-yellow); }
+
+
+.f-logo { font-family:var(--mono); font-size:0.75rem; font-weight:700; color:var(--blue); letter-spacing:0.18em; }
+.f-links { display:flex; gap:0.3rem; list-style:none; }
+.f-links a {
+  font-family:var(--mono); font-size:0.62rem; color:var(--text3);
+  text-decoration:none; letter-spacing:0.08em; text-transform:uppercase;
+  padding:0.3rem 0.7rem; border-radius:3px;
+  transition:all 0.15s;
+}
+.f-links a:hover { color:var(--blue); background:var(--blue3); }
+
+/* Animations */
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+::-webkit-scrollbar-thumb:hover { background:var(--border3); }
+
+.hidden { display:none !important; }
+
+@media(max-width:640px){
+  .t-nav { display:none; }
+  .hero { padding:3rem 1.5rem 2rem; }
+  .main { padding:1rem 1rem 4rem; }
+  .metrics-strip { grid-template-columns:repeat(1,1fr); }
+  .secci{
+    position: absolute;
+    left: 0%;
+    top:66%;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="tl">
+    <div class="tl-badge">API</div>
+    <span class="tl-label">REST Best Practices</span>
+  </div>
+  <ul class="t-nav">
+    <li><a href="#naming">Naming</a></li>
+    <li><a href="#status">Status</a></li>
+    <li><a href="#auth">Auth</a></li>
+    <li><a href="#errors">Errors</a></li>
+    <li><a href="#versioning">Versioning</a></li>
+    <li><a href="#performance">Performance</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#interview">انترفيو</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-eyebrow">
+      <div class="hero-eyebrow-line"></div>
+      <span class="hero-eyebrow-text">Developer Handbook · دليل المطور</span>
+    </div>
+    <h1 class="hero-h1">
+      REST API
+      <span class="line2">BEST PRACTICES</span>
+      <span class="line3">NAMING · STATUS · AUTH · VERSIONING · SECURITY</span>
+    </h1>
+    <p class="hero-p">كل حاجة محتاج تعرفها عشان تبني API محترف — من تسمية الـ endpoints لـ security وأسئلة الانترفيو.</p>
+    <div class="hero-stats">
+      <div class="h-stat"><span class="h-stat-n">50+</span><div class="h-stat-l">Practices</div></div>
+      <div class="h-stat"><span class="h-stat-n">7</span><div class="h-stat-l">محاور</div></div>
+      <div class="h-stat"><span class="h-stat-n">20</span><div class="h-stat-l">انترفيو</div></div>
+    </div>
+  </div>
+
+  <!-- Request/Response Visualizer -->
+  <div class="req-viz">
+    <div class="rv-header">
+      <span class="rv-method m-get">GET</span>
+      <span class="rv-url">/api/v1/users/5</span>
+      <span class="rv-status-ok">200 OK</span>
+    </div>
+    <div class="rv-body">
+      <span class="rv-dim">{</span>
+      <br>  <span class="rv-key">"success"</span>: <span class="rv-bool">true</span>,
+      <br>  <span class="rv-key">"data"</span>: <span class="rv-dim">{</span>
+      <br>    <span class="rv-key">"id"</span>: <span class="rv-num">5</span>,
+      <br>    <span class="rv-key">"name"</span>: <span class="rv-val">"Ahmed"</span>,
+      <br>    <span class="rv-key">"email"</span>: <span class="rv-val">"ahmed@api.dev"</span>,
+      <br>    <span class="rv-key">"role"</span>: <span class="rv-val">"developer"</span>
+      <br>  <span class="rv-dim">}</span>
+      <br><span class="rv-dim">}</span>
+    </div>
+    <div class="rv-sep"></div>
+    <div class="rv-header" style="border-top:none;border-bottom:none;">
+      <span class="rv-method m-post">POST</span>
+      <span class="rv-url">/api/v1/users</span>
+      <span class="rv-status-err">422 Error</span>
+    </div>
+    <div class="rv-body">
+      <span class="rv-dim">{</span>
+      <br>  <span class="rv-key">"success"</span>: <span class="rv-bool">false</span>,
+      <br>  <span class="rv-key">"errors"</span>: <span class="rv-dim">{</span>
+      <br>    <span class="rv-key">"email"</span>: <span class="rv-bad">["required"]</span>
+      <br>  <span class="rv-dim">}</span>
+      <br><span class="rv-dim">}</span>
+    </div>
+  </div>
+</div>
+
+<!-- METRICS STRIP -->
+<div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 2rem 1rem;">
+  <div class="metrics-strip">
+    <div class="ms-cell"><span class="ms-n">50+</span><div class="ms-l">Best Practices</div></div>
+    <div class="ms-cell"><span class="ms-n">15</span><div class="ms-l">Status Codes</div></div>
+    <div class="ms-cell"><span class="ms-n">7</span><div class="ms-l">محاور</div></div>
+    <div class="ms-cell"><span class="ms-n">20</span><div class="ms-l">سؤال انترفيو</div></div>
+    <div class="ms-cell"><span class="ms-n">16</span><div class="ms-l">Checklist</div></div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <span class="filters-label">Filter:</span>
+  <button class="fb active" onclick="filter('all',this)">All</button>
+  <button class="fb" onclick="filter('naming',this)">Naming</button>
+  <button class="fb" onclick="filter('status',this)">Status Codes</button>
+  <button class="fb" onclick="filter('auth',this)">Auth</button>
+  <button class="fb" onclick="filter('errors',this)">Errors</button>
+  <button class="fb" onclick="filter('versioning',this)">Versioning</button>
+  <button class="fb" onclick="filter('performance',this)">Performance</button>
+  <button class="fb" onclick="filter('security',this)">Security</button>
+</div>
+
+<main class="main">
+
+<!-- ══════════ NAMING ══════════ -->
+<div class="sec-head" id="naming">
+  <span class="sec-num">01</span>
+  <span class="sec-title">URL Naming & Structure</span>
+  <span class="sec-sub">تسمية الـ Endpoints</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="g2">
+
+  <div class="pcard" data-cat="naming">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x01</span>
+      <span class="pc-title">استخدم Nouns مش Verbs في الـ URL</span>
+      <span class="pc-tag t-naming">Naming</span>
+    </div>
+    <div class="pc-body">
+      <p>الـ URL يعبر عن الـ Resource. الـ HTTP Method هي الـ Action.</p>
+      <div class="cmp">
+        <div>
+          <div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+<span class="tag">GET</span>    /api/users
+<span class="tag">POST</span>   /api/users
+<span class="tag">GET</span>    /api/users/<span class="num">5</span>
+<span class="tag">PUT</span>    /api/users/<span class="num">5</span>
+<span class="tag">DELETE</span> /api/users/<span class="num">5</span></div>
+        </div>
+        <div>
+          <div class="cb cb-bad"><div class="cb-lbl lbl-bad">غلط</div>
+<span class="tag">GET</span>  /api/getUsers
+<span class="tag">POST</span> /api/createUser
+<span class="tag">GET</span>  /api/getUserById/<span class="num">5</span>
+<span class="tag">POST</span> /api/updateUser/<span class="num">5</span>
+<span class="tag">POST</span> /api/deleteUser/<span class="num">5</span></div>
+        </div>
+      </div>
+      <div class="note b"><span>💡</span> الـ HTTP Method هي الـ verb — مش المفروض تكررها في الـ URL أبداً.</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="naming">
+    <div class="pc-accent green"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x02</span>
+      <span class="pc-title">الجمع للـ Collections، Nested للـ Relations</span>
+      <span class="pc-tag t-naming">Naming</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+<span class="tag">GET</span>  /api/<span class="str">users</span>              <span class="cm">// all users</span>
+<span class="tag">GET</span>  /api/<span class="str">users</span>/<span class="num">5</span>          <span class="cm">// user #5</span>
+<span class="tag">GET</span>  /api/<span class="str">users</span>/<span class="num">5</span>/<span class="str">posts</span>   <span class="cm">// posts of user #5</span>
+<span class="tag">POST</span> /api/<span class="str">users</span>/<span class="num">5</span>/<span class="str">posts</span>   <span class="cm">// create post for user #5</span></div>
+      <div class="note a"><span>⚠️</span> ما تعمقش أكتر من مستويين في الـ nesting — يصعب القراءة.</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="naming">
+    <div class="pc-accent amber"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x03</span>
+      <span class="pc-title">kebab-case في الـ URL دايماً</span>
+      <span class="pc-tag t-naming">Naming</span>
+    </div>
+    <div class="pc-body">
+      <div class="cmp">
+        <div>
+          <div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+/api/user-profiles
+/api/blog-posts
+/api/order-items</div>
+        </div>
+        <div>
+          <div class="cb cb-bad"><div class="cb-lbl lbl-bad">غلط</div>
+/api/userProfiles
+/api/BlogPosts
+/api/order_items</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="naming">
+    <div class="pc-accent"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x04</span>
+      <span class="pc-title">Query Params للـ Filtering, Sorting, Pagination</span>
+      <span class="pc-tag t-naming">Naming</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">Query Params</div>
+<span class="cm">// Filtering</span>
+<span class="tag">GET</span> /api/products?<span class="str">category</span>=phones&<span class="str">status</span>=active
+
+<span class="cm">// Sorting</span>
+<span class="tag">GET</span> /api/products?<span class="str">sort</span>=price&<span class="str">order</span>=desc
+
+<span class="cm">// Pagination</span>
+<span class="tag">GET</span> /api/products?<span class="str">page</span>=<span class="num">2</span>&<span class="str">per_page</span>=<span class="num">20</span>
+
+<span class="cm">// Search</span>
+<span class="tag">GET</span> /api/products?<span class="str">q</span>=iphone</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="naming">
+    <div class="pc-accent green"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x05</span>
+      <span class="pc-title">HTTP Methods — كل method وليها معنى</span>
+      <span class="pc-tag t-naming">Naming</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb">
+<span class="method GET">GET</span>    <span class="cm">→ Read   (safe + idempotent)</span>
+<span class="method POST">POST</span>   <span class="cm">→ Create (not idempotent)</span>
+<span class="method PUT">PUT</span>    <span class="cm">→ Full Update (idempotent)</span>
+<span class="method PATCH">PATCH</span>  <span class="cm">→ Partial Update</span>
+<span class="method DELETE">DELETE</span> <span class="cm">→ Delete (idempotent)</span>
+
+<span class="cm">// PUT = send full object:</span>
+<span class="method PUT">PUT</span> /users/<span class="num">5</span> → {name, email, phone, address}
+
+<span class="cm">// PATCH = send only changed fields:</span>
+<span class="method PATCH">PATCH</span> /users/<span class="num">5</span> → {name: <span class="str">"Ahmed"</span>}</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="naming">
+    <div class="pc-accent amber"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x06</span>
+      <span class="pc-title">Actions على Resources — حالات خاصة</span>
+      <span class="pc-tag t-naming">Naming</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">صح — actions as sub-resources</div>
+<span class="method POST">POST</span> /api/orders/<span class="num">5</span>/<span class="str">cancel</span>
+<span class="method POST">POST</span> /api/users/<span class="num">5</span>/<span class="str">activate</span>
+<span class="method POST">POST</span> /api/posts/<span class="num">5</span>/<span class="str">publish</span>
+<span class="method POST">POST</span> /api/users/<span class="num">5</span>/<span class="str">send-verification</span>
+
+<span class="cm">// Relationship actions:</span>
+<span class="method POST">POST</span>   /api/posts/<span class="num">5</span>/<span class="str">likes</span>   <span class="cm">// like</span>
+<span class="method DELETE">DELETE</span> /api/posts/<span class="num">5</span>/<span class="str">likes</span>   <span class="cm">// unlike</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ STATUS CODES ══════════ -->
+<div class="sec-head" id="status">
+  <span class="sec-num">02</span>
+  <span class="sec-title">HTTP Status Codes</span>
+  <span class="sec-sub">استخدم الـ Code الصح دايماً</span>
+  <div class="sec-line"></div>
+</div>
+
+<div style="margin-top:1.5rem; background:var(--border); border-radius:6px; overflow:hidden; border:1px solid var(--border);">
+  <div style="overflow-x:auto;">
+    <table class="st-table">
+      <thead>
+        <tr>
+          <th>Code</th><th>الاسم</th><th>امتى تستخدمه</th><th>مثال</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="s2xx">200 OK</span></td><td>Success</td><td>أي طلب ناجح مع response body</td><td>GET /users → list returned</td></tr>
+        <tr><td><span class="s2xx">201 Created</span></td><td>Created</td><td>إنشاء resource جديد بنجاح</td><td>POST /users → user created</td></tr>
+        <tr><td><span class="s2xx">204 No Content</span></td><td>No Content</td><td>نجح الطلب لكن مفيش body</td><td>DELETE /users/5</td></tr>
+        <tr><td><span class="s3xx">301 Moved</span></td><td>Redirect</td><td>الـ endpoint اتغير بشكل دائم</td><td>Old URL → new URL</td></tr>
+        <tr><td><span class="s3xx">304 Not Modified</span></td><td>Cache Hit</td><td>الـ resource ما اتغيرش</td><td>ETag match</td></tr>
+        <tr><td><span class="s4xx">400 Bad Request</span></td><td>Bad Request</td><td>الـ request فيه مشكلة</td><td>Missing required field</td></tr>
+        <tr><td><span class="s4xx">401 Unauthorized</span></td><td>Unauthenticated</td><td>مش متعرفناكش — token مفيش أو غلط</td><td>No bearer token</td></tr>
+        <tr><td><span class="s4xx">403 Forbidden</span></td><td>Forbidden</td><td>اتعرفنا عليك بس مش مسموحلك</td><td>User → admin route</td></tr>
+        <tr><td><span class="s4xx">404 Not Found</span></td><td>Not Found</td><td>الـ resource مش موجود</td><td>GET /users/999</td></tr>
+        <tr><td><span class="s4xx">409 Conflict</span></td><td>Conflict</td><td>conflict مع الـ current state</td><td>Email already exists</td></tr>
+        <tr><td><span class="s4xx">422 Unprocessable</span></td><td>Validation Error</td><td>فاهم الـ request بس الـ data غلط</td><td>Invalid email format</td></tr>
+        <tr><td><span class="s4xx">429 Too Many</span></td><td>Rate Limit</td><td>تجاوز الـ rate limit</td><td>60 req/min exceeded</td></tr>
+        <tr><td><span class="s5xx">500 Server Error</span></td><td>Internal Error</td><td>حصل error في الـ server</td><td>Unhandled exception</td></tr>
+        <tr><td><span class="s5xx">503 Unavailable</span></td><td>Service Down</td><td>الـ server مش شغال مؤقتاً</td><td>Maintenance mode</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="g2" style="margin-top:1px;">
+
+  <div class="pcard" data-cat="status">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x07</span>
+      <span class="pc-title">الأخطاء الشائعة في Status Codes</span>
+      <span class="pc-tag t-status">Status</span>
+    </div>
+    <div class="pc-body">
+      <ul class="rl">
+        <li>إرجاع <code>200</code> مع error message في الـ body — غلط تماماً</li>
+        <li>استخدام <code>400</code> لكل الأخطاء بدل الـ specific codes</li>
+        <li>الخلط بين <code>401</code> و<code>403</code> — مختلفين جداً</li>
+        <li>إرجاع <code>200</code> للـ DELETE بدل <code>204</code></li>
+      </ul>
+      <div class="cmp">
+        <div><div class="cb cb-bad"><div class="cb-lbl lbl-bad">غلط</div>
+<span class="cm">// HTTP 200 OK ← wrong!</span>
+{
+  "success": <span class="kw">false</span>,
+  "message": "User not found"
+}</div></div>
+        <div><div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+<span class="cm">// HTTP 404 Not Found</span>
+{
+  "error": <span class="str">"USER_NOT_FOUND"</span>,
+  "message": "Not found"
+}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="status">
+    <div class="pc-accent"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x08</span>
+      <span class="pc-title">Status Codes في Laravel</span>
+      <span class="pc-tag t-status">Status</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">Laravel</div>
+<span class="kw">use</span> <span class="cls">Symfony\Component\HttpFoundation\Response</span>;
+
+<span class="fn">response</span>()-><span class="fn">json</span>(<span class="var">$data</span>,
+    <span class="cls">Response</span>::<span class="val">HTTP_OK</span>);                  <span class="cm">// 200</span>
+<span class="fn">response</span>()-><span class="fn">json</span>(<span class="var">$user</span>,
+    <span class="cls">Response</span>::<span class="val">HTTP_CREATED</span>);             <span class="cm">// 201</span>
+<span class="fn">response</span>()-><span class="fn">noContent</span>();               <span class="cm">// 204</span>
+<span class="fn">response</span>()-><span class="fn">json</span>(<span class="var">$errors</span>,
+    <span class="cls">Response</span>::<span class="val">HTTP_UNPROCESSABLE_ENTITY</span>);  <span class="cm">// 422</span>
+<span class="fn">response</span>()-><span class="fn">json</span>(<span class="var">$e</span>,
+    <span class="cls">Response</span>::<span class="val">HTTP_TOO_MANY_REQUESTS</span>);    <span class="cm">// 429</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ AUTH ══════════ -->
+<div class="sec-head" id="auth">
+  <span class="sec-num">03</span>
+  <span class="sec-title">Authentication & Authorization</span>
+  <span class="sec-sub secci">الحماية والصلاحيات</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="g2">
+
+  <div class="pcard" data-cat="auth">
+    <div class="pc-accent purple"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x09</span>
+      <span class="pc-title">JWT vs Sanctum vs Passport</span>
+      <span class="pc-tag t-auth">Auth</span>
+    </div>
+    <div class="pc-body">
+      <ul class="rl">
+        <li><strong>Laravel Sanctum</strong> — الأفضل للـ SPA وـ Mobile. Simple tokens. يدعم cookie-based للـ SPAs.</li>
+        <li><strong>Laravel Passport</strong> — OAuth2 كامل. للـ third-party "Login with our platform".</li>
+        <li><strong>JWT (tymon/jwt-auth)</strong> — Stateless. الـ token فيه كل المعلومات بدون DB lookup.</li>
+      </ul>
+      <div class="cb"><div class="cb-lbl lbl-info">Sanctum</div>
+<span class="var">$token</span> = <span class="var">$user</span>-><span class="fn">createToken</span>(<span class="str">'auth_token'</span>)
+              ->plainTextToken;
+
+<span class="cls">Route</span>::<span class="fn">middleware</span>(<span class="str">'auth:sanctum'</span>)-><span class="fn">group</span>(<span class="kw">function</span>() {
+    <span class="cm">// protected routes here</span>
+});</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="auth">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x0A</span>
+      <span class="pc-title">Authorization Header الصحيح</span>
+      <span class="pc-tag t-auth">Auth</span>
+    </div>
+    <div class="pc-body">
+      <div class="cmp">
+        <div><div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+Authorization: Bearer eyJhbGci...
+
+<span class="cm">// axios:</span>
+axios.defaults.headers
+  .common['Authorization']
+  = `Bearer ${token}`</div></div>
+        <div><div class="cb cb-bad"><div class="cb-lbl lbl-bad">خطر</div>
+<span class="tag">GET</span> /api/users?token=eyJ...
+
+<span class="cm">// Token في URL!</span>
+<span class="cm">// بيظهر في server logs</span>
+<span class="cm">// وبراوزر history</span></div></div>
+      </div>
+      <div class="note r"><span>🚨</span> الـ Token في الـ URL بيتسجل في الـ logs — خطر أمني كبير.</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="auth">
+    <div class="pc-accent purple"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x0B</span>
+      <span class="pc-title">Token Scopes والصلاحيات</span>
+      <span class="pc-tag t-auth">Auth</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">Sanctum Scopes</div>
+<span class="var">$token</span> = <span class="var">$user</span>-><span class="fn">createToken</span>(
+    <span class="str">'mobile-app'</span>,
+    [<span class="str">'read:posts'</span>, <span class="str">'write:comments'</span>]
+)->plainTextToken;
+
+<span class="cls">Route</span>::<span class="fn">middleware</span>([
+    <span class="str">'auth:sanctum'</span>,
+    <span class="str">'abilities:write:comments'</span>
+])-><span class="fn">post</span>(<span class="str">'/comments'</span>, ...);
+
+<span class="var">$request</span>-><span class="fn">user</span>()-><span class="fn">tokenCan</span>(<span class="str">'write:comments'</span>);</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="auth">
+    <div class="pc-accent"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x0C</span>
+      <span class="pc-title">Refresh Tokens Strategy</span>
+      <span class="pc-tag t-auth">Auth</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">Response after login</div>
+{
+  <span class="str">"access_token"</span>:  <span class="str">"eyJ..."</span>,  <span class="cm">// 15min–1hr</span>
+  <span class="str">"refresh_token"</span>: <span class="str">"abc..."</span>,  <span class="cm">// 7–30 days</span>
+  <span class="str">"expires_in"</span>:    <span class="num">3600</span>,       <span class="cm">// seconds</span>
+  <span class="str">"token_type"</span>:    <span class="str">"Bearer"</span>
+}
+
+<span class="cm">// Refresh endpoint:</span>
+<span class="method POST">POST</span> /api/auth/refresh
+<span class="cm">// body: { refresh_token: "abc..." }</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ ERRORS ══════════ -->
+<div class="sec-head" id="errors">
+  <span class="sec-num">04</span>
+  <span class="sec-title">Error Handling & Response Format</span>
+  <span class="sec-sub">الـ Responses والـ Errors</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="g2">
+
+  <div class="pcard" data-cat="errors">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x0D</span>
+      <span class="pc-title">Standard Response Structure</span>
+      <span class="pc-tag t-error">Errors</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">Success 200</div>
+{
+  <span class="str">"success"</span>: <span class="kw">true</span>,
+  <span class="str">"data"</span>: { <span class="str">"id"</span>: <span class="num">5</span>, <span class="str">"name"</span>: <span class="str">"Ahmed"</span> },
+  <span class="str">"message"</span>: <span class="str">"User retrieved successfully"</span>
+}
+
+<span class="cm">// Collection:</span>
+{
+  <span class="str">"success"</span>: <span class="kw">true</span>,
+  <span class="str">"data"</span>: [...],
+  <span class="str">"meta"</span>: {
+    <span class="str">"current_page"</span>: <span class="num">1</span>, <span class="str">"per_page"</span>: <span class="num">20</span>,
+    <span class="str">"total"</span>: <span class="num">150</span>,  <span class="str">"last_page"</span>: <span class="num">8</span>
+  }
+}</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="errors">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x0E</span>
+      <span class="pc-title">Standard Error Structure</span>
+      <span class="pc-tag t-error">Errors</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">Validation 422</div>
+{
+  <span class="str">"success"</span>: <span class="kw">false</span>,
+  <span class="str">"errors"</span>: {
+    <span class="str">"email"</span>: [<span class="str">"required"</span>],
+    <span class="str">"password"</span>: [<span class="str">"min 8 chars"</span>]
+  }
+}</div>
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">Not Found 404</div>
+{
+  <span class="str">"success"</span>: <span class="kw">false</span>,
+  <span class="str">"error"</span>: <span class="str">"USER_NOT_FOUND"</span>,
+  <span class="str">"message"</span>: <span class="str">"User 999 not found"</span>
+}</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="errors">
+    <div class="pc-accent green"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x0F</span>
+      <span class="pc-title">API Resource في Laravel</span>
+      <span class="pc-tag t-design">Design</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">UserResource.php</div>
+<span class="kw">class</span> <span class="cls">UserResource</span> <span class="kw">extends</span> <span class="cls">JsonResource</span> {
+  <span class="kw">public function</span> <span class="fn">toArray</span>(<span class="var">$request</span>) {
+    <span class="kw">return</span> [
+      <span class="str">'id'</span>          => <span class="var">$this</span>->id,
+      <span class="str">'name'</span>        => <span class="var">$this</span>->name,
+      <span class="str">'email'</span>       => <span class="var">$this</span>->email,
+      <span class="str">'created_at'</span>  => <span class="var">$this</span>->created_at
+                         -><span class="fn">format</span>(<span class="str">'Y-m-d'</span>),
+      <span class="str">'posts_count'</span> => <span class="var">$this</span>->posts_count,
+      <span class="cm">// ❌ Never expose: password, token</span>
+    ];
+  }
+}
+<span class="kw">return</span> <span class="kw">new</span> <span class="cls">UserResource</span>(<span class="var">$user</span>);           <span class="cm">// single</span>
+<span class="kw">return</span> <span class="cls">UserResource</span>::<span class="fn">collection</span>(<span class="var">$users</span>);  <span class="cm">// many</span></div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="errors">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x10</span>
+      <span class="pc-title">Global Exception Handler</span>
+      <span class="pc-tag t-error">Errors</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">Handler.php</div>
+<span class="kw">public function</span> <span class="fn">render</span>(<span class="var">$request</span>, <span class="cls">Throwable</span> <span class="var">$e</span>) {
+  <span class="kw">if</span> (<span class="var">$request</span>-><span class="fn">expectsJson</span>()) {
+    <span class="kw">if</span> (<span class="var">$e</span> <span class="kw">instanceof</span> <span class="cls">ModelNotFoundException</span>)
+      <span class="kw">return</span> <span class="fn">response</span>()-><span class="fn">json</span>([
+        <span class="str">'error'</span>   => <span class="str">'NOT_FOUND'</span>,
+        <span class="str">'message'</span> => <span class="str">'Resource not found'</span>
+      ], <span class="num">404</span>);
+
+    <span class="kw">if</span> (<span class="var">$e</span> <span class="kw">instanceof</span> <span class="cls">AuthenticationException</span>)
+      <span class="kw">return</span> <span class="fn">response</span>()-><span class="fn">json</span>([
+        <span class="str">'error'</span>   => <span class="str">'UNAUTHENTICATED'</span>,
+        <span class="str">'message'</span> => <span class="str">'Please login first'</span>
+      ], <span class="num">401</span>);
+  }
+  <span class="kw">return</span> <span class="kw">parent</span>::<span class="fn">render</span>(<span class="var">$request</span>, <span class="var">$e</span>);
+}</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ VERSIONING ══════════ -->
+<div class="sec-head" id="versioning">
+  <span class="sec-num">05</span>
+  <span class="sec-title">API Versioning</span>
+  <span class="sec-sub">إدارة إصدارات الـ API</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="g2">
+
+  <div class="pcard" data-cat="versioning">
+    <div class="pc-accent cyan"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x11</span>
+      <span class="pc-title">طرق الـ Versioning — المقارنة</span>
+      <span class="pc-tag t-version">Versioning</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">URL Versioning — الأفضل</div>
+<span class="method GET">GET</span> /api/<span class="str">v1</span>/users   <span class="cm">// clear, debuggable</span>
+<span class="method GET">GET</span> /api/<span class="str">v2</span>/users   <span class="cm">// breaking changes here</span></div>
+      <div class="cb cb-bad"><div class="cb-lbl lbl-bad">Header — صعب testing</div>
+Accept: application/vnd.api+json;version=2</div>
+      <div class="cb cb-bad"><div class="cb-lbl lbl-bad">Query Param — مش clean</div>
+<span class="method GET">GET</span> /api/users?version=1</div>
+      <div class="note c"><span>💡</span> URL Versioning — واضح، يشتغل مع كل clients، سهل الـ debugging.</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="versioning">
+    <div class="pc-accent cyan"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x12</span>
+      <span class="pc-title">Versioning في Laravel</span>
+      <span class="pc-tag t-version">Versioning</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">routes/api.php</div>
+<span class="cls">Route</span>::<span class="fn">prefix</span>(<span class="str">'v1'</span>)
+    -><span class="fn">namespace</span>(<span class="str">'App\Http\Controllers\Api\V1'</span>)
+    -><span class="fn">group</span>(<span class="kw">function</span>() {
+        <span class="cls">Route</span>::<span class="fn">apiResource</span>(<span class="str">'users'</span>, <span class="cls">UserController</span>::<span class="kw">class</span>);
+    });
+
+<span class="cls">Route</span>::<span class="fn">prefix</span>(<span class="str">'v2'</span>)
+    -><span class="fn">namespace</span>(<span class="str">'App\Http\Controllers\Api\V2'</span>)
+    -><span class="fn">group</span>(<span class="kw">function</span>() {
+        <span class="cls">Route</span>::<span class="fn">apiResource</span>(<span class="str">'users'</span>, <span class="cls">UserController</span>::<span class="kw">class</span>);
+    });
+
+<span class="cm">// Controllers/Api/V1/UserController.php</span>
+<span class="cm">// Controllers/Api/V2/UserController.php</span></div>
+      <div class="note a"><span>⚠️</span> لا تحذف الـ old version فجأة — أعطي clients وقت للـ migration.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ PERFORMANCE ══════════ -->
+<div class="sec-head" id="performance">
+  <span class="sec-num">06</span>
+  <span class="sec-title">Performance & Caching</span>
+  <span class="sec-sub">الأداء والـ Cache</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="g2">
+
+  <div class="pcard" data-cat="performance">
+    <div class="pc-accent green"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x13</span>
+      <span class="pc-title">Pagination — لا ترجع كل البيانات دفعة واحدة</span>
+      <span class="pc-tag t-perf">Performance</span>
+    </div>
+    <div class="pc-body">
+      <div class="cmp">
+        <div><div class="cb cb-bad"><div class="cb-lbl lbl-bad">غلط</div>
+<span class="kw">return</span> <span class="cls">User</span>::<span class="fn">all</span>();
+<span class="cm">// 1M records?? OOM!</span></div></div>
+        <div><div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+<span class="var">$users</span> = <span class="cls">User</span>::<span class="fn">paginate</span>(<span class="num">20</span>);
+<span class="kw">return</span> <span class="cls">UserResource</span>::
+  <span class="fn">collection</span>(<span class="var">$users</span>);</div></div>
+      </div>
+      <div class="cb"><div class="cb-lbl lbl-info">Paginated Response</div>
+{
+  <span class="str">"data"</span>: [...],
+  <span class="str">"links"</span>: {
+    <span class="str">"next"</span>: <span class="str">"/api/users?page=2"</span>,
+    <span class="str">"last"</span>: <span class="str">"/api/users?page=8"</span>
+  },
+  <span class="str">"meta"</span>: { <span class="str">"total"</span>: <span class="num">150</span>, <span class="str">"per_page"</span>: <span class="num">20</span> }
+}</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="performance">
+    <div class="pc-accent green"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x14</span>
+      <span class="pc-title">Rate Limiting</span>
+      <span class="pc-tag t-perf">Performance</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb"><div class="cb-lbl lbl-info">RouteServiceProvider</div>
+<span class="cls">RateLimiter</span>::<span class="fn">for</span>(<span class="str">'api'</span>, <span class="kw">fn</span>(<span class="cls">Request</span> <span class="var">$r</span>) =>
+  <span class="cls">Limit</span>::<span class="fn">perMinute</span>(<span class="num">60</span>)
+        -><span class="fn">by</span>(<span class="var">$r</span>-><span class="fn">user</span>()?->id ?: <span class="var">$r</span>-><span class="fn">ip</span>())
+);
+<span class="cls">Route</span>::<span class="fn">middleware</span>([<span class="str">'throttle:api'</span>])-><span class="fn">group</span>(...);</div>
+      <ul class="rl">
+        <li>Response headers: <code>X-RateLimit-Limit: 60</code></li>
+        <li><code>X-RateLimit-Remaining: 45</code></li>
+        <li>When exceeded → <strong>429</strong> + <code>Retry-After: 30</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="performance">
+    <div class="pc-accent green"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x15</span>
+      <span class="pc-title">Response Caching</span>
+      <span class="pc-tag t-perf">Performance</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">Cache + Invalidate</div>
+<span class="kw">public function</span> <span class="fn">index</span>() {
+  <span class="kw">return</span> <span class="cls">Cache</span>::<span class="fn">remember</span>(
+    <span class="str">'products.all'</span>,
+    <span class="fn">now</span>()-><span class="fn">addMinutes</span>(<span class="num">30</span>),
+    <span class="kw">fn</span>() => <span class="cls">Product</span>::<span class="fn">with</span>(<span class="str">'category'</span>)-><span class="fn">get</span>()
+  );
+}
+<span class="kw">public function</span> <span class="fn">store</span>(<span class="cls">Request</span> <span class="var">$req</span>) {
+  <span class="var">$p</span> = <span class="cls">Product</span>::<span class="fn">create</span>(<span class="var">$req</span>-><span class="fn">validated</span>());
+  <span class="cls">Cache</span>::<span class="fn">forget</span>(<span class="str">'products.all'</span>); <span class="cm">// invalidate!</span>
+  <span class="kw">return</span> <span class="kw">new</span> <span class="cls">ProductResource</span>(<span class="var">$p</span>);
+}</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="performance">
+    <div class="pc-accent"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x16</span>
+      <span class="pc-title">Selective Fields — ?fields=</span>
+      <span class="pc-tag t-perf">Performance</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+<span class="method GET">GET</span> /api/users?fields=id,name,email
+
+<span class="kw">public function</span> <span class="fn">index</span>(<span class="cls">Request</span> <span class="var">$request</span>) {
+  <span class="var">$query</span> = <span class="cls">User</span>::<span class="fn">query</span>();
+  <span class="kw">if</span> (<span class="var">$f</span> = <span class="var">$request</span>-><span class="fn">input</span>(<span class="str">'fields'</span>)) {
+    <span class="var">$allowed</span> = [<span class="str">'id'</span>,<span class="str">'name'</span>,<span class="str">'email'</span>,<span class="str">'created_at'</span>];
+    <span class="var">$query</span>-><span class="fn">select</span>(
+      <span class="fn">array_intersect</span>(<span class="fn">explode</span>(<span class="str">','</span>,<span class="var">$f</span>), <span class="var">$allowed</span>)
+    );
+  }
+  <span class="kw">return</span> <span class="var">$query</span>-><span class="fn">paginate</span>(<span class="num">20</span>);
+}</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ SECURITY ══════════ -->
+<div class="sec-head" id="security">
+  <span class="sec-num">07</span>
+  <span class="sec-title">Security</span>
+  <span class="sec-sub">الحماية والأمان</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="g2">
+
+  <div class="pcard" data-cat="security">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x17</span>
+      <span class="pc-title">HTTPS دايماً — مش اختياري</span>
+      <span class="pc-tag t-sec">Security</span>
+    </div>
+    <div class="pc-body">
+      <ul class="rl">
+        <li>كل الـ endpoints على HTTPS — HTTP بيبعت tokens plain text</li>
+        <li>Force HTTPS: <code>URL::forceScheme('https')</code></li>
+        <li>HSTS: <code>Strict-Transport-Security: max-age=31536000</code></li>
+      </ul>
+      <div class="note r"><span>🚨</span> HTTPS مش بس للـ login — كل الـ endpoints. الـ tokens بتتسرب على HTTP.</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="security">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x18</span>
+      <span class="pc-title">Input Validation دايماً</span>
+      <span class="pc-tag t-sec">Security</span>
+    </div>
+    <div class="pc-body">
+      <div class="cmp">
+        <div><div class="cb cb-bad"><div class="cb-lbl lbl-bad">خطر</div>
+<span class="cls">User</span>::<span class="fn">create</span>(
+  <span class="var">$request</span>-><span class="fn">all</span>()
+); <span class="cm">// DANGEROUS!</span></div></div>
+        <div><div class="cb cb-good"><div class="cb-lbl lbl-good">صح</div>
+<span class="kw">public function</span> <span class="fn">store</span>(
+  <span class="cls">StoreUserRequest</span> <span class="var">$req</span>
+) {
+  <span class="cls">User</span>::<span class="fn">create</span>(<span class="var">$req</span>-><span class="fn">validated</span>());
+}</div></div>
+      </div>
+      <div class="cb"><div class="cb-lbl lbl-info">StoreUserRequest</div>
+<span class="str">'name'</span>     => [<span class="str">'required'</span>, <span class="str">'string'</span>, <span class="str">'max:100'</span>],
+<span class="str">'email'</span>    => [<span class="str">'required'</span>, <span class="str">'email'</span>, <span class="str">'unique:users'</span>],
+<span class="str">'password'</span> => [<span class="str">'required'</span>, <span class="str">'min:8'</span>, <span class="str">'confirmed'</span>],</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="security">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x19</span>
+      <span class="pc-title">CORS Configuration</span>
+      <span class="pc-tag t-sec">Security</span>
+    </div>
+    <div class="pc-body">
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">config/cors.php</div>
+<span class="kw">return</span> [
+  <span class="str">'paths'</span>           => [<span class="str">'api/*'</span>],
+  <span class="str">'allowed_origins'</span> => [
+    <span class="str">'https://yourapp.com'</span>,
+    <span class="str">'https://admin.yourapp.com'</span>,
+  ],
+  <span class="str">'allowed_methods'</span> => [<span class="str">'GET'</span>,<span class="str">'POST'</span>,<span class="str">'PUT'</span>,<span class="str">'DELETE'</span>],
+  <span class="str">'allowed_headers'</span> => [<span class="str">'Content-Type'</span>,<span class="str">'Authorization'</span>],
+  <span class="cm">// ❌ Never: 'allowed_origins' => ['*']</span>
+];</div>
+    </div>
+  </div>
+
+  <div class="pcard" data-cat="security">
+    <div class="pc-accent red"></div>
+    <div class="pc-head">
+      <span class="pc-idx">0x1A</span>
+      <span class="pc-title">ما تعرضش معلومات حساسة</span>
+      <span class="pc-tag t-sec">Security</span>
+    </div>
+    <div class="pc-body">
+      <ul class="rl">
+        <li>ما ترجعش <code>password</code> أو <code>remember_token</code> أبداً</li>
+        <li>في 500 errors ما ترجعش الـ stack trace في production</li>
+        <li>ما تكشفش الـ database structure في رسائل الـ errors</li>
+      </ul>
+      <div class="cb cb-good"><div class="cb-lbl lbl-good">User Model</div>
+<span class="kw">protected</span> <span class="var">$hidden</span> = [
+  <span class="str">'password'</span>, <span class="str">'remember_token'</span>, <span class="str">'two_factor_secret'</span>
+];
+
+<span class="cm">// .env production:</span>
+<span class="val">APP_DEBUG</span>=<span class="kw">false</span>  <span class="cm">// ← CRITICAL!</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ CHECKLIST ══════════ -->
+<div class="checklist">
+  <div class="cl-head">
+    <div class="cl-head-label">DEPLOY</div>
+    <div class="cl-head-title">Pre-Deploy API <em>Checklist</em></div>
+  </div>
+  <div class="cl-grid">
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>كل الـ endpoints بتستخدم HTTPS</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>الـ URLs بتستخدم nouns مش verbs</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>كل endpoint عنده الـ HTTP method الصح</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>Status codes صح في كل response</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>الـ error responses ليها consistent format</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>كل الـ inputs بتتعمل validate بـ Form Request</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>Authentication على الـ protected routes</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>Authorization checks موجودة</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>Rate limiting مفعل</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>الـ API versioned (/v1/)</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>كل collections بتتعمل paginate</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>CORS محدد بـ specific domains</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>APP_DEBUG=false في production</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>الـ sensitive fields في $hidden</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>API Resources تتحكم في شكل الـ response</span></div>
+    <div class="cl-item" onclick="cl(this)"><div class="cl-box"></div><span>Global exception handler موجود</span></div>
+  </div>
+</div>
+
+<!-- ══════════ INTERVIEW ══════════ -->
+<div class="sec-head" id="interview">
+  <span class="sec-num">08</span>
+  <span class="sec-title">أسئلة الانترفيو</span>
+  <span class="sec-sub">REST API · 20 سؤال</span>
+  <div class="sec-line"></div>
+</div>
+
+<div class="q-wrap">
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q01</span><span class="q-t">إيه هو REST وإيه مبادئه الأساسية؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>REST (Representational State Transfer) هو architectural style. مبادئه الست: <strong>Stateless</strong> كل request كامل بنفسه، <strong>Client-Server</strong> فصل frontend عن backend، <strong>Cacheable</strong>، <strong>Uniform Interface</strong>، <strong>Layered System</strong>، <strong>Code on Demand</strong> (اختياري).</p>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q02</span><span class="q-t">إيه الفرق بين 401 و403؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>401 Unauthorized</strong> = مش عارف إنت مين. مفيش token أو token غلط.</p>
+      <p><strong>403 Forbidden</strong> = عارف إنت مين بس مش مسموحلك تعمل ده.</p>
+      <div class="cb">GET /api/profile (no token)        → 401
+DELETE /api/admin/users (user role) → 403</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q03</span><span class="q-t">إيه الفرق بين PUT وـ PATCH؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>PUT</strong> = Full replacement. لازم تبعت كل fields.</p>
+      <p><strong>PATCH</strong> = Partial update. بتبعت اللي اتغير بس.</p>
+      <div class="cb">PUT   /users/5 → {name, email, phone, address} <span class="cm">// all</span>
+PATCH /users/5 → {name: "Ahmed"}             <span class="cm">// partial</span></div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q04</span><span class="q-t">إيه هو Idempotent وإنهي methods idempotent؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>الـ Idempotent operation — لو عملتها أكتر من مرة النتيجة نفسها.</p>
+      <p><strong>Idempotent:</strong> GET, PUT, DELETE, HEAD, OPTIONS</p>
+      <p><strong>Not Idempotent:</strong> POST — كل مرة بتعمل record جديد.</p>
+      <div class="cb">DELETE /users/5 → 204 (deleted)
+DELETE /users/5 → 404 (already gone) ✓ same outcome
+
+POST /orders → order #1
+POST /orders → order #2  ✗ different!</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q05</span><span class="q-t">إيه الفرق بين Authentication وـ Authorization؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>Authentication</strong> = "إنت مين؟" — التحقق من الهوية.</p>
+      <p><strong>Authorization</strong> = "مسموحلك بإيه؟" — التحقق من الصلاحيات بعد معرفة الهوية.</p>
+      <p>Authentication بتيجي الأول دايماً.</p>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q06</span><span class="q-t">إيه هو JWT وإزاي بيشتغل؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>JWT — stateless token بـ 3 parts (header.payload.signature).</p>
+      <div class="cb">eyJhbGciOiJIUzI1NiJ9   <span class="cm">// Header</span>
+.eyJ1c2VyX2lkIjo1fQ    <span class="cm">// Payload: {user_id: 5, exp: ...}</span>
+.SflKxwRJSMeKKF2QT4fw  <span class="cm">// Signature</span></div>
+      <p>الـ server بيتحقق من الـ signature فقط — ما بيعملش DB lookup في كل request.</p>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q07</span><span class="q-t">إيه هو CORS وليه بيحصل؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>Browser security policy بتمنع JavaScript على domain من طلب data من domain تاني. الحل: الـ server يرجع headers بتسمح للـ origins المعينة.</p>
+      <div class="cb">Access-Control-Allow-Origin: https://app.com
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q08</span><span class="q-t">إيه الفرق بين REST وـ GraphQL؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>REST:</strong> Multiple endpoints. كل endpoint بيرجع structure محدد. ممكن over/under-fetching.</p>
+      <p><strong>GraphQL:</strong> Endpoint واحد. الـ client بيطلب بالظبط الـ data اللي يحتاجها.</p>
+      <div class="cb"><span class="cm">// REST: multiple requests</span>
+GET /users/5  +  GET /users/5/posts
+
+<span class="cm">// GraphQL: one request</span>
+query { user(id: 5) { name, posts { title } } }</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q09</span><span class="q-t">إيه هو Rate Limiting وليه مهم؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>بيحدد عدد الـ requests اللي client ممكن يعملها في وقت معين. مهم لمنع DDoS, brute force, API abuse. عند التجاوز → <strong>429 Too Many Requests</strong> + <code>Retry-After</code> header.</p>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q10</span><span class="q-t">إيه هو API Versioning وليه مهم؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>بيتيح تغيير الـ API بدون كسر الـ clients القديمة. لما تعمل breaking change بتعمل version جديد.</p>
+      <div class="cb">GET /api/v1/users → old format (still works)
+GET /api/v2/users → new format</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q11</span><span class="q-t">إيه هو Stateless في REST؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>الـ server ما بيحتفظش بأي state عن الـ client بين الـ requests. كل request لازم يحمل كل المعلومات المحتاجة.</p>
+      <div class="cb"><span class="cm">// Stateful (session):</span>
+POST /login → server saves session → GET /profile reads session
+
+<span class="cm">// Stateless (token):</span>
+POST /login → returns token → GET /profile + token</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q12</span><span class="q-t">إزاي تتعامل مع Pagination في الـ API؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>Offset Pagination:</strong> <code>?page=2&per_page=20</code> — سهل بس بيبطأ مع كبر البيانات.</p>
+      <p><strong>Cursor Pagination:</strong> <code>?cursor=eyJ...&per_page=20</code> — أسرع للـ real-time data.</p>
+      <div class="cb"><span class="cls">User</span>::<span class="fn">orderBy</span>(<span class="str">'id'</span>)-><span class="fn">cursorPaginate</span>(<span class="num">20</span>);</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q13</span><span class="q-t">إيه هو HATEOAS؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>مبدأ في REST بيقول إن الـ response لازم يحتوي على links للـ related actions.</p>
+      <div class="cb">{
+  "id": 5, "name": "Ahmed",
+  "links": {
+    "self":   "/api/users/5",
+    "posts":  "/api/users/5/posts",
+    "delete": "/api/users/5"
+  }
+}</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q14</span><span class="q-t">إزاي تعمل API Documentation صح؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>الـ Docs لازم تكون شاملة وفيها أمثلة حقيقية ومحدثة مع كل تغيير. في Laravel: <strong>Swagger/OpenAPI</strong> مع <code>darkaonline/l5-swagger</code> أو Postman Collections.</p>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q15</span><span class="q-t">إيه هو Webhook وإزاي بيختلف عن API؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>API:</strong> أنت بتطلب (pull). <strong>Webhook:</strong> هو بيبعتلك (push) لما حاجة تحصل.</p>
+      <div class="cb"><span class="cm">// API: you ask each time</span>
+GET /api/payment-status/123
+
+<span class="cm">// Webhook: Stripe notifies you</span>
+POST https://yourapp.com/webhooks/stripe
+{ "event": "payment.completed", "amount": 100 }</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q16</span><span class="q-t">إيه هو API Gateway؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>Entry point واحد لكل الـ requests. بيعمل: Authentication, Rate Limiting, Load Balancing, Routing للـ microservices, Logging. أمثلة: AWS API Gateway, Kong, Nginx.</p>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q17</span><span class="q-t">إزاي تتعامل مع File Upload في الـ API؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <div class="cb"><span class="method POST">POST</span> /api/users/<span class="num">5</span>/avatar
+Content-Type: multipart/form-data
+
+<span class="var">$request</span>-><span class="fn">validate</span>([<span class="str">'avatar'</span> => [<span class="str">'required'</span>, <span class="str">'image'</span>, <span class="str">'max:2048'</span>]]);
+<span class="var">$path</span> = <span class="var">$request</span>-><span class="fn">file</span>(<span class="str">'avatar'</span>)-><span class="fn">store</span>(<span class="str">'avatars'</span>, <span class="str">'public'</span>);
+<span class="kw">return</span> <span class="fn">response</span>()-><span class="fn">json</span>([<span class="str">'url'</span> => <span class="fn">asset</span>(<span class="str">'storage/'</span>.<span class="var">$path</span>)]);</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q18</span><span class="q-t">إيه هو Content Negotiation؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>بيتيح للـ client يحدد نوع الـ response عن طريق الـ Accept header.</p>
+      <div class="cb">Accept: application/json  <span class="cm">// want JSON</span>
+Accept: application/xml   <span class="cm">// want XML</span>
+
+<span class="cm">// Laravel:</span>
+<span class="kw">if</span> (<span class="var">$request</span>-><span class="fn">wantsJson</span>()) { ... }
+<span class="kw">if</span> (<span class="var">$request</span>-><span class="fn">expectsJson</span>()) { ... }</div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q19</span><span class="q-t">إيه هو Idempotency Key وامتى تستخدمه؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p>بيمنع تنفيذ نفس الـ operation مرتين (زي الـ payments) لو الـ request اتبعت مرتين بالغلط.</p>
+      <div class="cb"><span class="method POST">POST</span> /api/payments
+Idempotency-Key: uuid-unique-per-request
+
+<span class="kw">if</span> (<span class="cls">Cache</span>::<span class="fn">has</span>(<span class="str">'pay_'</span>.<span class="var">$key</span>)) <span class="kw">return</span> <span class="cls">Cache</span>::<span class="fn">get</span>(<span class="str">'pay_'</span>.<span class="var">$key</span>);
+<span class="cm">// process + cache result for 24h</span></div>
+    </div></div>
+  </div>
+
+  <div class="q-card" onclick="toggleQ(this)">
+    <div class="q-head"><span class="q-n">Q20</span><span class="q-t">إيه الفرق بين JSON وـ XML في الـ API؟</span><span class="q-arr">▶</span></div>
+    <div class="q-ans"><div class="q-ans-inner">
+      <p><strong>JSON:</strong> أخف، أسهل parsing، native في JS. الـ standard للـ modern REST APIs.</p>
+      <p><strong>XML:</strong> أثقل، verbose. يُستخدم في legacy systems وـ SOAP.</p>
+      <div class="cb">JSON: { "name": "Ahmed", "age": 25 }
+XML:  &lt;user&gt;&lt;name&gt;Ahmed&lt;/name&gt;&lt;age&gt;25&lt;/age&gt;&lt;/user&gt;</div>
+    </div></div>
+  </div>
+
+</div>
+
+</main>
+
+<footer>
+  <div class="f-logo">[ REST-API-GUIDE v2.0 ]</div>
+  <!-- <ul class="f-links">
+    <li><a href="https://www.linkedin.com/in/eslam-mohamed-marey" target="_blank">LinkedIn</a></li>
+    <li><a href="https://github.com/eslamar3y" target="_blank">GitHub</a></li>
+    <li><a href="https://eslamar3y.github.io/Laravel-patterns/index.html" target="_blank">Laravel Patterns</a></li>
+    <li><a href="https://eslamar3y.github.io/Laravel-hub/" target="_blank">Laravel Hub</a></li>
+  </ul> -->
+  <div class="footer-note" data-i18n="footer.note">
+    <span class="l-en">A reference guide for developers. Built for learning &amp; interview prep. Arabic &amp; English.</span>
+    <span class="l-ar" style="display:none">دليل مرجعي للمطورين. مبني للتعلم والتحضير للمقابلات. بالعربي والانجليزي.</span>
+  </div>
+  <div class="footer-author" style="text-align: center;">
+    <span class="footer-author-name">
+      <span class="l-en">Built by Eslam Mohamed</span>
+      <span class="l-ar" style="display:none">من تصميم إسلام محمد</span>
+    </span>
+    <div class="footer-social">
+      <a href="https://www.linkedin.com/in/eslam-mohamed-marey" target="_blank" rel="noopener">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+      <a href="https://github.com/eslamar3y" target="_blank" rel="noopener">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        GitHub
+      </a>
+      <a href="https://facebook.com/eslamar3y" target="_blank" rel="noopener">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Facebook
+      </a>
+    </div>
+</footer>
+
+<script>
+function toggleQ(card) { card.classList.toggle('open'); }
+
+function cl(item) {
+  item.classList.toggle('on');
+  item.querySelector('.cl-box').textContent = item.classList.contains('on') ? '✓' : '';
+}
+
+function filter(cat, btn) {
+  document.querySelectorAll('.fb').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.pcard').forEach(card => {
+    if (cat === 'all' || card.dataset.cat === cat)
+      card.classList.remove('hidden');
+    else
+      card.classList.add('hidden');
+  });
+}
+
+// Scroll reveal
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.05 });
+
+document.querySelectorAll('.pcard, .q-card').forEach((el, i) => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(16px)';
+  el.style.transition = `opacity 0.4s ${i * 0.025}s ease, transform 0.4s ${i * 0.025}s ease`;
+  obs.observe(el);
+});
+</script>
+</body>
+</html>
